@@ -1112,6 +1112,7 @@ describe('LobeOpenAICompatibleFactory', () => {
           image: expect.any(File),
           mask: 'https://example.com/mask.jpg',
           response_format: 'b64_json',
+          input_fidelity: 'high',
         });
 
         expect(result).toEqual({
@@ -1157,6 +1158,7 @@ describe('LobeOpenAICompatibleFactory', () => {
           prompt: 'Merge these images',
           image: [mockFile1, mockFile2],
           response_format: 'b64_json',
+          input_fidelity: 'high',
         });
 
         expect(result).toEqual({
@@ -1227,9 +1229,26 @@ describe('LobeOpenAICompatibleFactory', () => {
         );
       });
 
-      it('should throw error when b64_json is missing', async () => {
+      it('should handle url format response successfully', async () => {
         vi.spyOn(instance['client'].images, 'generate').mockResolvedValue({
-          data: [{ url: 'https://example.com/image.jpg' }],
+          data: [{ url: 'https://example.com/generated-image.jpg' }],
+        } as any);
+
+        const payload = {
+          model: 'dall-e-3',
+          params: { prompt: 'Test prompt' },
+        };
+
+        const result = await (instance as any).createImage(payload);
+
+        expect(result).toEqual({
+          imageUrl: 'https://example.com/generated-image.jpg',
+        });
+      });
+
+      it('should throw error when both b64_json and url are missing', async () => {
+        vi.spyOn(instance['client'].images, 'generate').mockResolvedValue({
+          data: [{ some_other_field: 'value' }],
         } as any);
 
         const payload = {
@@ -1238,7 +1257,7 @@ describe('LobeOpenAICompatibleFactory', () => {
         };
 
         await expect((instance as any).createImage(payload)).rejects.toThrow(
-          'Invalid image response: missing b64_json field',
+          'Invalid image response: missing both b64_json and url fields',
         );
       });
     });
@@ -1269,6 +1288,7 @@ describe('LobeOpenAICompatibleFactory', () => {
           image: expect.any(File),
           customParam: 'should remain unchanged',
           response_format: 'b64_json',
+          input_fidelity: 'high',
         });
       });
 
@@ -1332,9 +1352,26 @@ describe('LobeOpenAICompatibleFactory', () => {
           id: 'gpt-4o',
           maxOutput: 4096,
           pricing: {
-            cachedInput: 1.25,
-            input: 2.5,
-            output: 10,
+            units: [
+              {
+                name: 'textInput_cacheRead',
+                rate: 1.25,
+                strategy: 'fixed',
+                unit: 'millionTokens',
+              },
+              {
+                name: 'textInput',
+                rate: 2.5,
+                strategy: 'fixed',
+                unit: 'millionTokens',
+              },
+              {
+                name: 'textOutput',
+                rate: 10,
+                strategy: 'fixed',
+                unit: 'millionTokens',
+              },
+            ],
           },
           providerId: 'azure',
           releasedAt: '2024-05-13',
@@ -1354,8 +1391,20 @@ describe('LobeOpenAICompatibleFactory', () => {
           id: 'claude-3-haiku-20240307',
           maxOutput: 4096,
           pricing: {
-            input: 0.25,
-            output: 1.25,
+            units: [
+              {
+                name: 'textInput',
+                rate: 0.25,
+                strategy: 'fixed',
+                unit: 'millionTokens',
+              },
+              {
+                name: 'textOutput',
+                rate: 1.25,
+                strategy: 'fixed',
+                unit: 'millionTokens',
+              },
+            ],
           },
           providerId: 'anthropic',
           releasedAt: '2024-03-07',
@@ -1380,9 +1429,26 @@ describe('LobeOpenAICompatibleFactory', () => {
           id: 'gpt-4o-mini',
           maxOutput: 4096,
           pricing: {
-            cachedInput: 0.075,
-            input: 0.15,
-            output: 0.6,
+            units: [
+              {
+                name: 'textInput_cacheRead',
+                rate: 0.075,
+                strategy: 'fixed',
+                unit: 'millionTokens',
+              },
+              {
+                name: 'textInput',
+                rate: 0.15,
+                strategy: 'fixed',
+                unit: 'millionTokens',
+              },
+              {
+                name: 'textOutput',
+                rate: 0.6,
+                strategy: 'fixed',
+                unit: 'millionTokens',
+              },
+            ],
           },
           providerId: 'azure',
           releasedAt: '2023-10-26',
@@ -1392,7 +1458,7 @@ describe('LobeOpenAICompatibleFactory', () => {
         {
           id: 'gemini',
           releasedAt: '2025-01-10',
-          type: undefined,
+          type: 'chat',
         },
       ]);
     });

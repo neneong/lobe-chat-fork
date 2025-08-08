@@ -1,7 +1,5 @@
-import { log } from 'debug';
+import type { TracePayload } from '@lobechat/types';
 import { ClientOptions } from 'openai';
-
-import type { TracePayload } from '@/const/trace';
 
 import { LobeRuntimeAI } from './BaseAI';
 import { LobeBedrockAIParams } from './bedrock';
@@ -26,7 +24,7 @@ export interface AgentChatOptions {
   trace?: TracePayload;
 }
 
-class ModelRuntime {
+export class ModelRuntime {
   private _runtime: LobeRuntimeAI;
 
   constructor(runtime: LobeRuntimeAI) {
@@ -112,19 +110,11 @@ class ModelRuntime {
         LobeCloudflareParams & { apiKey?: string; apiVersion?: string; baseURL?: string }
     >,
   ) {
-    // @ts-expect-error ignore
-    if (providerRuntimeMap[provider]) {
-      log('Provider runtime map found for provider: %s', provider);
-    } else {
-      log('Provider runtime map not found for provider: %s', provider);
-    }
-
     // @ts-expect-error runtime map not include vertex so it will be undefined
     const providerAI = providerRuntimeMap[provider] ?? LobeOpenAI;
+
     const runtimeModel: LobeRuntimeAI = new providerAI(params);
 
     return new ModelRuntime(runtimeModel);
   }
 }
-
-export default ModelRuntime;
